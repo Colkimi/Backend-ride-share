@@ -1,0 +1,24 @@
+### Test Driver Bookings Endpoint
+### Get driver profile for user ID 8457
+GET http://localhost:8000/driver/by-user/8457
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjg0NTYsImVtYWlsIjoiYWRtaW5AZWV4YW1wbGUuY29tIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzUzMjc3NzE0LCJleHAiOjE3NTMyNzk1MTR9.Yqe7O-bnZiSW8PjLfJvKwd6vCoJTFMePxKa2q1t9LnM
+
+### Get all bookings for authenticated driver
+GET http://localhost:8000/driver/bookings
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjg0NTYsImVtYWlsIjoiYWRtaW5AZWV4YW1wbGUuY29tIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzUzMjc3NzE0LCJleHAiOjE3NTMyNzk1MTR9.Yqe7O-bnZiSW8PjLfJvKwd6vCoJTFMePxKa2q1t9LnM
+
+### Get pending bookings for authenticated driver
+GET http://localhost:8000/driver/bookings/pending
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjg0NTYsImVtYWlsIjoiYWRtaW5AZWV4YW1wbGUuY29tIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzUzMjc3NzE0LCJleHAiOjE3NTMyNzk1MTR9.Yqe7O-bnZiSW8PjLfJvKwd6vCoJTFMePxKa2q1t9LnM
+
+### Test with specific booking ID (replace 1 with actual booking ID)
+GET http://localhost:8000/driver/bookings/20620
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjg0NTYsImVtYWlsIjoiYWRtaW5AZWV4YW1wbGUuY29tIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzUzMjc3NzE0LCJleHAiOjE3NTMyNzk1MTR9.Yqe7O-bnZiSW8PjLfJvKwd6vCoJTFMePxKa2q1t9LnM
+
+### Accept a booking (replace 1 with actual booking ID)
+POST http://localhost:8000/driver/bookings/1/accept
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjg0NTYsImVtYWlsIjoiYWRtaW5AZWV4YW1wbGUuY29tIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzUzMjc3NzE0LCJleHAiOjE3NTMyNzk1MTR9.Yqe7O-bnZiSW8PjLfJvKwd6vCoJTFMePxKa2q1t9LnM
+
+### Reject a booking (replace 1 with actual booking ID)
+POST http://localhost:8000/driver/bookings/1/reject
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjg0NTYsImVtYWlsIjoiYWRtaW5AZWV4YW1wbGUuY29tIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzUzMjc3NzE0LCJleHAiOjE3NTMyNzk1MTR9.Yqe7O-bnZiSW8PjLfJvKwd6vCoJTFMePxKa2q1t9LnM

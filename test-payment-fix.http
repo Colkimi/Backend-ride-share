@@ -1,0 +1,42 @@
+### Test creating a payment method with PayPal integration
+POST http://localhost:3000/payment-method
+Content-Type: application/json
+
+{
+  "payment_type": "paypal",
+  "amount": 150,
+  "currency": "USD",
+  "userId": 1,
+  "is_default": true,
+  "returnUrl": "http://localhost:3000/success",
+  "cancelUrl": "http://localhost:3000/cancel"
+}
+
+### Test creating a payment method without PayPal (should have null approvalUrl)
+POST http://localhost:3000/payment-method
+Content-Type: application/json
+
+{
+  "payment_type": "mpesa",
+  "amount": 150,
+  "currency": "KES",
+  "userId": 1,
+  "is_default": false
+}
+
+### Get all payment methods to verify
+GET http://localhost:3000/payment-method
+
+### Get specific payment method to see PayPal details
+GET http://localhost:3000/payment-method/1
+
+### Capture PayPal payment and update details
+POST http://localhost:3000/payment-method/1/capture-paypal
+Content-Type: application/json
+
+{
+  "orderId": "PAYPAL_ORDER_ID_HERE"
+}
+
+### Create PayPal order directly (for testing)
+GET http://localhost:3000/payment-method/paypal/create-order?amount=150&currency=USD

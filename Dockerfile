@@ -12,6 +12,10 @@ RUN pnpm install --frozen-lockfile
 
 COPY . .
 
+# Build the NestJS app *before* starting it
+RUN pnpm run build
+
 EXPOSE 8000
 
-CMD [ "pnpm", "run", "start:dev" ]
+# ✅ Use the compiled build in production, no watch mode
+CMD [ "pnpm", "run", "start:prod" ]

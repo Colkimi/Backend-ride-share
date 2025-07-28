@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { User } from './entities/user.entity';
+import { User, Role } from './entities/user.entity';
 import { Repository } from 'typeorm';
 import * as Bcrypt from 'bcrypt';
 
@@ -36,7 +36,10 @@ export class UsersService {
       email: createUserDto.email,
       phone: createUserDto.phone,
       password: await this.hashData(createUserDto.password),
-      role: createUserDto.role || 'FACULTY',
+      role: createUserDto.role || Role.CUSTOMER,
+      activeRole: createUserDto.role || Role.CUSTOMER, // Set initial active role
+      availableRoles: [createUserDto.role || Role.CUSTOMER], // Set initial available roles
+      isDriverEligible: false,
     };
 
     const savedUser = await this.userRepository
@@ -59,11 +62,11 @@ export class UsersService {
         where: {
           email: email,
         },
-        select: ['userId', 'firstName', 'lastName', 'email', 'phone', 'role'],
+        select: ['userId', 'firstName', 'lastName', 'email', 'phone', 'role', 'activeRole', 'availableRoles', 'isDriverEligible'],
       });
     } else {
       users = await this.userRepository.find({
-        select: ['userId', 'firstName', 'lastName', 'email', 'phone', 'role'],
+        select: ['userId', 'firstName', 'lastName', 'email', 'phone', 'role', 'activeRole', 'availableRoles', 'isDriverEligible'],
       });
     }
 
@@ -77,6 +80,21 @@ export class UsersService {
     }
 
     return res;
+  }
+
+  // New method to get user with role information
+  async findOneWithRoles(id: number): Promise<Partial<User>> {
+    const user = await this.userRepository.findOne({
+      where: { userId: id },
+      select: ['userId', 'firstName', 'lastName', 'email', 'phone', 'role', 'activeRole', 'availableRoles', 'isDriverEligible'],
+      relations: ['driver']
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User with id ${id} not found`);
+    }
+
+    return user;
   }
 
   async update(

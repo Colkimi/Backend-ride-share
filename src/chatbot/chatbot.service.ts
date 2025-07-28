@@ -2,11 +2,12 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Booking, Status } from 'src/bookings/entities/booking.entity';
-import { User } from 'src/users/entities/user.entity';
+import { Role, User } from 'src/users/entities/user.entity';
 import { Driver } from 'src/driver/entities/driver.entity';
 import { PaymentMethod } from 'src/payment-method/entities/payment-method.entity';
 import { Review } from 'src/review/entities/review.entity';
 import { AnalyticsService } from 'src/analytics/analytics.service';
+import { RoleSwitchingService } from 'src/users/role-switching.service';
 
 @Injectable()
 export class ChatbotService {
@@ -25,6 +26,7 @@ export class ChatbotService {
     @InjectRepository(Review)
     private readonly reviewRepository: Repository<Review>,
     private readonly analyticsService: AnalyticsService,
+    private readonly roleSwitchingService: RoleSwitchingService,
   ) {}
 
   async chat(userId: number, message: string): Promise<string> {
@@ -39,17 +41,20 @@ export class ChatbotService {
       let response: string;
 
       switch (intent) {
+        case 'urgentBooking':
+          response = await this.handleUrgentBookingRequest(userId, message);
+          break;
+        case 'locationBooking':
+          response = await this.handleLocationBasedBooking(userId, message);
+          break;
         case 'booking':
           response = await this.handleBookingQuery(userId);
           break;
-        case 'newBooking': // New case for booking instructions
+        case 'newBooking':
           response = await this.handleNewBookingInstructions(userId);
           break;
         case 'payment':
           response = await this.handlePaymentQuery(userId);
-          break;
-        case 'driver':
-          response = await this.handleDriverInfo(userId);
           break;
         case 'review':
           response = await this.handleReviews(userId);
@@ -76,7 +81,6 @@ export class ChatbotService {
           response = await this.handleContextualResponse(userId, message);
       }
 
-      // Add response to context
       this.addToContext(userId, { role: 'assistant', content: response, timestamp: new Date() });
 
       return response;
@@ -84,6 +88,88 @@ export class ChatbotService {
       this.logger.error(`Error processing chat for user ${userId}:`, error);
       return this.getErrorResponse();
     }
+  }
+
+  private async handleUrgentBookingRequest(userId: number, message: string): Promise<string> {
+    const locations = this.extractLocations(message);
+    
+    let response = `🚨 **I'll help you get a ride right away!**\n\n`;
+    
+    if (locations.from && locations.to) {
+      response += `📍 **Route Detected:**\n`;
+      response += `🚩 From: ${locations.from}\n`;
+      response += `🎯 To: ${locations.to}\n\n`;
+      
+      response += `**🚗 Quick Booking Options:**\n`;
+      response += `🟢 [Book Ride Now](/create?from=${encodeURIComponent(locations.from)}&to=${encodeURIComponent(locations.to)})\n`;
+      response += `📱 [Emergency Booking](/emergency-booking?from=${encodeURIComponent(locations.from)}&to=${encodeURIComponent(locations.to)})\n\n`;
+    } else {
+      response += `**Let me help you book a ride:**\n`;
+      response += `🚗 [Start Booking Process](/create)\n`;
+    }
+    
+    response += `**⚡ Immediate Actions:**\n`;
+    response += `🆘 Emergency Contact: 0700-Rideshare\n`;
+    response += `💬 Live Support: Type "help" for immediate assistance\n\n`;
+    
+    response += `**💡 Tip:** For fastest service, share your exact location and destination!`;
+    
+    return response;
+  }
+
+  private async handleLocationBasedBooking(userId: number, message: string): Promise<string> {
+    const locations = this.extractLocations(message);
+    
+    let response = `🗺️ **Route Planning Assistant**\n\n`;
+    
+    if (locations.from && locations.to) {
+      response += `**📍 Your Journey:**\n`;
+      response += `🚩 From: ${locations.from}\n`;
+      response += `🎯 To: ${locations.to}\n\n`;
+      
+      response += `**📊 Journey Details:**\n`;
+      response += `⏱️ Estimated Time: 45-60 minutes\n`;
+      response += `💰 Estimated Fare: $ 8-12\n`;
+      response += `🚗 Available Vehicles: Economy, Comfort\n\n`;
+      
+      response += `**🚀 Book Your Ride:**\n`;
+      response += `🟢 [Book Now](/create?from=${encodeURIComponent(locations.from)}&to=${encodeURIComponent(locations.to)})\n`;
+      response += `👥 [Shared Ride](/share?from=${encodeURIComponent(locations.from)}&to=${encodeURIComponent(locations.to)})\n\n`;
+    } else {
+      response += `I can help you plan your journey! Please provide:\n\n`;
+      response += `📍 **Your current location** (e.g., "I'm in Thika")\n`;
+      response += `🎯 **Your destination** (e.g., "need to get to Nairobi CBD")\n\n`;
+      response += `🚗 [Start Booking](/create) | 💬 Type your journey details\n\n`;
+    }
+
+    response += `📱 [Download Mobile App](/landing)`;
+    
+    return response;
+  }
+
+  private extractLocations(message: string): { from?: string, to?: string } {
+    const lowerMessage = message.toLowerCase();
+    
+    let from: string | undefined;
+    let to: string | undefined;
+    
+    // Try to extract "from" location
+    if (lowerMessage.includes('i\'m in') || lowerMessage.includes('stuck in') || lowerMessage.includes('i\'m at')) {
+      const fromMatch = lowerMessage.match(/(?:i'm in|stuck in|i'm at)\s+([^,\s]+(?:\s+[^,\s]+)*?)(?:\s+(?:how|and|need|to)|$)/i);
+      if (fromMatch) {
+        from = fromMatch[1].trim();
+      }
+    }
+    
+    // Try to extract "to" location
+    if (lowerMessage.includes('get to') || lowerMessage.includes('go to') || lowerMessage.includes('to nairobi')) {
+      const toMatch = lowerMessage.match(/(?:get to|go to|to)\s+([^,\s]+(?:\s+[^,\s]+)*?)(?:\s|$)/i);
+      if (toMatch) {
+        to = toMatch[1].trim();
+      }
+    }
+    
+    return { from, to };
   }
 
   resetConversation(userId: number): void {
@@ -98,7 +184,6 @@ export class ChatbotService {
     const context = this.conversationContext.get(userId);
     if (context) {
       context.push(message);
-
       if (context.length > 10) {
         context.shift();
       }
@@ -106,8 +191,25 @@ export class ChatbotService {
   }
 
   private detectIntent(message: string, userId: number): string {
+    const lowerMessage = message.toLowerCase();
+    
+    // Priority 1: Emergency/Urgent situations
+    if (this.isUrgentRequest(lowerMessage)) {
+      return 'urgentBooking';
+    }
+    
+    // Priority 2: Location-based booking requests
+    if (this.isLocationBasedBooking(lowerMessage)) {
+      return 'locationBooking';
+    }
+    
+    // Priority 3: Specific booking requests
+    if (this.isSpecificBookingRequest(lowerMessage)) {
+      return 'newBooking';
+    }
+
     const intents = {
-      booking: ['booking', 'ride', 'trip', 'book', 'schedule', 'how do i book'],
+      booking: ['booking', 'ride', 'trip', 'book', 'schedule'],
       payment: ['payment', 'pay', 'bill', 'charge', 'refund'],
       driver: ['driver', 'location', 'where', 'pickup', 'drop'],
       review: ['review', 'rating', 'feedback', 'rate'],
@@ -117,22 +219,75 @@ export class ChatbotService {
       greeting: ['hello', 'hi', 'hey', 'good morning', 'good afternoon', 'good evening'],
       analytics: ['analytics', 'stats', 'statistics', 'dashboard', 'earnings', 'performance'], 
       system: ['system', 'status', 'health', 'active drivers', 'active bookings'],
-      // Enhanced booking intent detection
-      newBooking: ['book a ride', 'new ride', 'create booking', 'need a ride', 'book now']
+      newBooking: ['book a ride', 'new ride', 'create booking', 'need a ride', 'book now'],
+      roleSwitching: ['switch to driver', 'become driver', 'switch to customer', 'customer mode', 'driver mode', 'change role', 'my role'],
     };
 
-    // Check for "how do i book" specifically
-    if (message.includes('how do i book') || message.includes('how to book')) {
-      return 'newBooking';
+    // Only treat as greeting if it's JUST a greeting (not mixed with requests)
+    if (this.isPureGreeting(lowerMessage)) {
+      return 'greeting';
     }
 
     for (const [intent, keywords] of Object.entries(intents)) {
-      if (keywords.some(keyword => message.includes(keyword))) {
+      if (keywords.some(keyword => lowerMessage.includes(keyword))) {
         return intent;
       }
     }
 
     return 'default';
+  }
+
+  private isUrgentRequest(message: string): boolean {
+    const urgentKeywords = [
+      'stuck', 'stranded', 'emergency', 'urgent', 'need help', 'help me',
+      'lost', 'trapped', 'can\'t get', 'no way', 'desperate'
+    ];
+    
+    const locationKeywords = [
+      'how do i get to', 'how to get to', 'get me to', 'take me to',
+      'i need to go to', 'i\'m in', 'i\'m stuck in', 'i\'m at'
+    ];
+    
+    return urgentKeywords.some(keyword => message.includes(keyword)) ||
+           locationKeywords.some(keyword => message.includes(keyword));
+  }
+
+  private isLocationBasedBooking(message: string): boolean {
+    const locationPatterns = [
+      'from .+ to .+', 'get to .+', 'go to .+', 'travel to .+',
+      'i\'m in .+ need to get to', 'how do i get from .+ to .+'
+    ];
+    
+    // Check for common Kenyan locations
+    const kenyanLocations = [
+      'nairobi', 'thika', 'kiambu', 'nakuru', 'mombasa', 'kisumu',
+      'eldoret', 'cbd', 'westlands', 'karen', 'lavington', 'kasarani'
+    ];
+    
+    return locationPatterns.some(pattern => {
+      const regex = new RegExp(pattern, 'i');
+      return regex.test(message);
+    }) || kenyanLocations.some(location => message.includes(location));
+  }
+
+  private isSpecificBookingRequest(message: string): boolean {
+    return message.includes('book a ride') || 
+           message.includes('new ride') || 
+           message.includes('create booking') || 
+           message.includes('need a ride') || 
+           message.includes('book now');
+  }
+
+  private isPureGreeting(message: string): boolean {
+    const greetingWords = ['hello', 'hi', 'hey', 'good morning', 'good afternoon', 'good evening'];
+    const words = message.split(' ');
+    
+    // If message is only 1-3 words and contains greeting, it's pure greeting
+    if (words.length <= 3) {
+      return greetingWords.some(greeting => message.includes(greeting));
+    }
+    
+    return false;
   }
 
   private async handleBookingQuery(userId: number): Promise<string> {
@@ -216,7 +371,6 @@ No bookings found yet.
 📞 Call Support: /support`;
   }
 
-  // Helper methods for better formatting
   private getStatusEmoji(status: string): string {
     const statusEmojis = {
       'requested': '🕒',
@@ -245,14 +399,13 @@ No bookings found yet.
 No payment methods saved yet.
 
 **Get Started:**
-💳 Add Payment Method: /payment-methods/create
-📋 View Payment Options: /payment-methods
+💳 Add Payment Method: /payment/bookingId
 💡 Tip: Add a payment method for faster bookings!
 
 **Accepted Methods:**
 💳 Credit/Debit Cards
 📱 Mobile Payments
-💰 Digital Wallets`;
+💰 Paypal`;
     }
 
     let response = `💳 **Your Payment Methods**\n\n`;
@@ -264,78 +417,19 @@ No payment methods saved yet.
       response += `${index + 1}. ${typeEmoji} **${pm.payment_type}**${defaultBadge}\n`;
     });
 
-    response += `\n**Manage Payments:**\n`;
-    response += `💳 Add New Method: /payment-methods/create\n`;
-    response += `⚙️ Manage Methods: /payment-methods\n`;
-    response += `💰 Transaction History: /payments/history\n`;
-    response += `🔒 Security Settings: /security/payments`;
-
     return response;
   }
 
   private getPaymentTypeEmoji(type: string): string {
     const typeEmojis = {
-      'credit_card': '💳',
-      'debit_card': '💳',
       'paypal': '📱',
-      'apple_pay': '🍎',
-      'google_pay': '🟢',
-      'cash': '💵'
+      'mpesa': '',
+      'credit_card': '💳',
+      'debit_card': '💳'
     };
     return typeEmojis[type.toLowerCase()] || '💳';
   }
 
-  private async handleDriverInfo(userId: number): Promise<string> {
-    const driver = await this.driverRepository.findOne({
-      where: { user: { userId: userId } },
-      relations: ['user'],
-    });
-
-    if (!driver) {
-      return `🚗 **Driver Information**
-
-No driver profile found.
-
-**Become a Driver:**
-🚗 Register as Driver: /driver/register
-📋 Driver Requirements: /driver/requirements
-💰 Earnings Calculator: /driver/earnings-calc
-📞 Driver Support: /driver/support
-
-**Benefits:**
-💰 Flexible earning opportunities
-⏰ Choose your own schedule
-🎯 Weekly performance bonuses`;
-    }
-
-    try {
-      if (typeof driver.driver_id === 'undefined') {
-        return this.formatIncompleteDriverProfile();
-      }
-      
-      const driverDashboard = await this.analyticsService.getDriverDashboard(driver.driver_id);
-      return this.formatDriverDashboard(driver, driverDashboard);
-      
-    } catch (error) {
-      return this.formatBasicDriverInfo(driver);
-    }
-  }
-
-  private formatIncompleteDriverProfile(): string {
-    return `🚗 **Driver Profile Incomplete**
-
-Your driver information needs to be updated.
-
-**Required Actions:**
-📝 Complete Profile: /driver/edit
-📷 Upload Documents: /driver/documents
-🚙 Add Vehicle Info: /driver/vehicle
-✅ Verify Account: /driver/verify
-
-**Quick Links:**
-📋 Driver Dashboard: /driver
-📞 Driver Support: /driver/support`;
-  }
 
   private formatDriverDashboard(driver: any, dashboard: any): string {
     const statusIcon = driver.isAvailable ? '🟢' : '🔴';
@@ -361,9 +455,9 @@ Your driver information needs to be updated.
 ${dashboard.vehicle ? `🚙 ${dashboard.vehicle.model} - ${dashboard.vehicle.plateNumber}` : '❌ No vehicle registered'}
 
 **Quick Actions:**
-🔗 Full Dashboard: /driver/dashboard
-📊 Detailed Analytics: /driver/analytics
-🚗 Start Driving: /driver/go-online
+🔗 Full Dashboard: /dashboard
+📊 Detailed Analytics: /dashboard
+🚗 Start Driving: /bookings
 📱 Mobile Driver App: Download now`;
   }
 
@@ -377,10 +471,10 @@ ${dashboard.vehicle ? `🚙 ${dashboard.vehicle.model} - ${dashboard.vehicle.pla
 **Rating:** ${ratingStars} ${driver.rating || 'Not rated'}/5
 
 **Quick Actions:**
-🔗 View Bookings: /driver/bookings
-📊 Performance Stats: /driver/stats
-⚙️ Settings: /driver/settings
-📞 Support: /driver/support`;
+🔗 View Bookings: /bookings
+📊 Performance Stats: /dashboard
+⚙️ Settings: /settings
+📞 Support: /support`;
   }
 
   private async handleReviews(userId: number): Promise<string> {
@@ -392,8 +486,8 @@ ${dashboard.vehicle ? `🚙 ${dashboard.vehicle.model} - ${dashboard.vehicle.pla
     if (reviews.length === 0) {
       return `You haven't written any reviews yet.
 
-⭐ [Leave a Review](/reviews/create)
-📋 [View All Reviews](/reviews)`;
+⭐ [Leave a Review](/review)
+📋 [View All Reviews](/review)`;
     }
 
     let response = `**Your Recent Reviews:**\n`;
@@ -402,8 +496,8 @@ ${dashboard.vehicle ? `🚙 ${dashboard.vehicle.model} - ${dashboard.vehicle.pla
     });
 
     response += `\n**Quick Actions:**
-⭐ [Leave a New Review](/reviews/create)
-📋 [View All Reviews](/reviews)`;
+⭐ [Leave a New Review](/review)
+📋 [View All Reviews](/review)`;
 
     return response;
   }
@@ -415,7 +509,7 @@ ${dashboard.vehicle ? `🚙 ${dashboard.vehicle.model} - ${dashboard.vehicle.pla
       return `User profile not found. Please contact support.
 
 🔗 [Contact Support](/support)
-🏠 [Return to Home](/dashboard)`;
+🏠 [Return to Dashboard](/dashboard)`;
     }
 
     return `**Your Profile** 👤
@@ -425,12 +519,10 @@ ${dashboard.vehicle ? `🚙 ${dashboard.vehicle.model} - ${dashboard.vehicle.pla
 🎂 **Member Since:** ${user.created_at ? new Date(user.created_at).toLocaleDateString() : 'Unknown'}
 
 **Quick Actions:**
-⚙️ [Edit Profile](/profile/edit)
-🔒 [Change Password](/profile/password)
+⚙️ [Edit Profile](/account)
 🏠 [Dashboard](/dashboard)`;
   }
 
-  // Added missing methods
   private async handleHelpQuery(userId: number): Promise<string> {
     return `**How can I help you?** 🤝
 
@@ -449,8 +541,8 @@ ${dashboard.vehicle ? `🚙 ${dashboard.vehicle.model} - ${dashboard.vehicle.pla
 
 **Need more help?**
 📞 [Contact Support](/support)
-❓ [FAQ](/faq)
-💬 [Live Chat](/support/chat)`;
+❓ [FAQ](/support)
+💬 [Live Chat](/support)`;
   }
 
   private async handleCancelBooking(userId: number): Promise<string> {
@@ -477,7 +569,7 @@ ${dashboard.vehicle ? `🚙 ${dashboard.vehicle.model} - ${dashboard.vehicle.pla
 📍 From: ${booking.start_latitude}, ${booking.start_longitude}
 📍 To: ${booking.end_latitude}, ${booking.end_longitude}
 💰 Fare: $${booking.fare || 0}
-🔗 [Cancel Booking](/bookings/${booking.id}/cancel)\n\n`;
+🔗 [Cancel Booking](/bookings)\n\n`;
     });
 
     response += `**Note:** Cancellation policies may apply depending on timing.
@@ -520,15 +612,15 @@ Type anything like "book a ride", "my bookings", or "help" to get started!`;
         });
 
         if (driver) {
-                    if (typeof driver.driver_id === 'undefined') {
-                      return `Driver information is incomplete. Please update your driver profile.
+          if (typeof driver.driver_id === 'undefined') {
+            return `Driver information is incomplete. Please update your driver profile.
+
+🚗 [Update Driver Profile](/driver)
+📋 [View Driver Dashboard](/dashboard)`;
+          }
+          const driverDashboard = await this.analyticsService.getDriverDashboard(driver.driver_id);
           
-          🚗 [Update Driver Profile](/driver/edit)
-          📋 [View Driver Dashboard](/driver)`;
-                    }
-                    const driverDashboard = await this.analyticsService.getDriverDashboard(driver.driver_id);
-                    
-                    return `**📊 Your Driver Analytics**
+          return `**📊 Your Driver Analytics**
 
 **Weekly Performance:**
 🚗 Completed Rides: ${driverDashboard.weeklyStats.totalDrives}
@@ -546,7 +638,7 @@ ${driverDashboard.topDestinations.slice(0, 3).map((dest, i) =>
   `${i + 1}. ${dest.destination} - $${dest.price} (${dest.count} trips)`
 ).join('\n')}
 
-🔗 [View Full Analytics](/driver/analytics)`;
+🔗 [View Full Analytics](/dashboard)`;
         }
       }
 
@@ -598,7 +690,7 @@ Please try again or [contact support](/support) if the issue persists.`;
 
 **Quick Actions:**
 🚗 [Book a Ride](/create)
-👨‍🚗 [Become a Driver](/driver/register)
+👨‍🚗 [Become a Driver](/driver-registration)
 📊 [View Analytics](/dashboard)
 
 *System monitoring is active 24/7*`;
@@ -618,6 +710,11 @@ I'm having trouble accessing the system status right now.
   private async handleContextualResponse(userId: number, message: string): Promise<string> {
     const context = this.conversationContext.get(userId) || [];
     const lowerMessage = message.toLowerCase();
+    
+    // Handle travel-related queries that weren't caught earlier
+    if (lowerMessage.includes('get to') || lowerMessage.includes('travel') || lowerMessage.includes('go to')) {
+      return this.handleLocationBasedBooking(userId, message);
+    }
     
     if (lowerMessage.includes('thank') || lowerMessage.includes('thanks')) {
       return `You're welcome! 😊 Is there anything else I can help you with?
@@ -671,25 +768,21 @@ I'm having trouble accessing the system status right now.
 📧 [Email Support](mailto:support@rideshare.com)`;
     }
     
-    return `I'm not sure how to help with that specific request, but I'm here to assist! 
+    return `I'm here to help! 🤝
 
-**Here's what I can help you with:**
-🚗 Bookings and rides
-💳 Payment methods
-👤 Profile management
-⭐ Reviews and feedback
-🚙 Driver information
-📊 Analytics and performance stats
-🌐 System status
+**I understand you might need:**
+🚗 **Immediate ride booking** - Type "book a ride from [location] to [destination]"
+� **Location help** - Tell me where you are and where you need to go
+🆘 **Emergency assistance** - Type "emergency" for urgent help
 
-**Try asking me about:**
-• "Show my analytics"
-• "Driver performance"
-• "System status"
-• "My earnings"
-• "Help"
+**Quick Examples:**
+• "I need to get from Thika to Nairobi"
+• "Book a ride to the airport"
+• "I'm stuck and need help"
 
-Or [contact our support team](/support) for personalized assistance.`;
+**Or try:**
+💬 Type "help" for full assistance menu
+`;
   }
 
   private getErrorResponse(): string {
@@ -705,5 +798,133 @@ Or [contact our support team](/support) for personalized assistance.`;
 💬 [Live Chat](/support)
 
 I'm here to help once the issue is resolved!`;
+  }
+
+  private async handleRoleSwitching(userId: number, message: string): Promise<string> {
+    const lowerMessage = message.toLowerCase();
+    
+    if (lowerMessage.includes('my role') || lowerMessage.includes('current role')) {
+      try {
+        const roleInfo = await this.roleSwitchingService.getCurrentRole(userId);
+        
+        return `👤 **Your Current Role Status**
+
+**Active Role:** ${roleInfo.activeRole.toUpperCase()} Mode
+**Available Roles:** ${roleInfo.availableRoles.map(r => r.charAt(0).toUpperCase() + r.slice(1)).join(', ')}
+
+**Role Switching Options:**
+${roleInfo.canSwitchToDriver ? '🚗 Switch to Driver: Type "switch to driver"' : ''}
+${roleInfo.canSwitchToCustomer ? '🛍️ Switch to Customer: Type "switch to customer"' : ''}
+${roleInfo.requiresDriverSetup ? '📝 Complete Driver Setup: /driver-registration' : ''}
+
+**Quick Actions:**
+📊 View Dashboard: /dashboard
+⚙️ Account Settings: /profile
+🔄 Enable Driver Mode: Type "enable driver" (if not available)`;
+
+      } catch (error) {
+        return `❌ Unable to retrieve your role information. Please try again or contact support.`;
+      }
+    }
+    
+    if (lowerMessage.includes('switch to driver') || lowerMessage.includes('become driver')) {
+      try {
+        const result = await this.roleSwitchingService.switchToDriver(userId);
+        
+        if (result.success) {
+          if (result.requiresDriverSetup) {
+            return `🚗 **Driver Mode Setup Required**
+
+To start driving, you need to complete your driver profile:
+
+**Required Steps:**
+📝 Complete Driver Application: /driver-registration
+
+**Once verified, you can:**
+🔄 Switch between roles anytime
+💰 Start earning as a driver
+📱 Access driver dashboard
+
+**Current Status:** Customer Mode
+🔗 [Start Driver Registration](/driver-registration)`;
+          } else {
+            return `✅ **Successfully Switched to Driver Mode**
+
+🚗 You're now in driver mode and ready to accept rides!
+
+**Driver Dashboard:**
+📊 View Earnings: /dashboard
+📋 View Bookings: /bookings
+
+**Quick Actions:**
+🟢 Go Online: /dashboard
+📱 Driver App: Download now
+🔄 Switch to Customer: Type "switch to customer"
+
+**Available Roles:** ${result.availableRoles?.join(', ')}`;
+          }
+        } else {
+          return `⚠️ ${result.message}
+
+**Available Options:**
+${result.availableRoles?.includes(Role.DRIVER) ? '🚗 Complete driver setup first' : '📝 Enable driver mode: Type "enable driver"'}
+🔄 Check current role: Type "my role"`;
+        }
+      } catch (error) {
+        return `❌ Unable to switch to driver mode. ${error.message || 'Please try again or contact support.'}`;
+      }
+    }
+    
+    if (lowerMessage.includes('switch to customer') || lowerMessage.includes('customer mode')) {
+      try {
+        const result = await this.roleSwitchingService.switchToCustomer(userId);
+        
+        if (result.success) {
+          return `✅ **Successfully Switched to Customer Mode**
+
+🛍️ You're now in customer mode!
+
+**Quick Actions:**
+🚗 Book a Ride: /create
+📋 View My Bookings: /bookings
+📍 Manage Locations: /drive
+
+**Need to drive again?**
+🔄 Type "switch to driver" anytime
+💰 Resume earning when ready
+
+**Available Roles:** ${result.availableRoles?.join(', ')}`;
+        } else {
+          return `⚠️ ${result.message}
+
+**Available Options:**
+🔄 Check current role: Type "my role"
+📞 Contact Support: /support`;
+        }
+        
+      } catch (error) {
+        return `❌ Unable to switch to customer mode. ${error.message || 'Please try again or contact support.'}`;
+      }
+    }
+    
+    if (lowerMessage.includes('enable driver')) {
+      try {
+        const result = await this.roleSwitchingService.enableDriverMode(userId);
+        
+        return `✅ **Driver Mode ${result.success ? 'Enabled' : 'Status'}**
+
+${result.message}
+
+**Next Steps:**
+${result.requiresDriverSetup ? '📝 Complete Driver Registration: /driver/register' : '🚗 Switch to Driver Mode: Type "switch to driver"'}
+🔄 Check available roles: Type "my role"
+
+**Available Roles:** ${result.availableRoles?.join(', ')}`;
+      } catch (error) {
+        return `❌ Unable to enable driver mode. Please contact support.`;
+      }
+    }
+    
+    return "";
   }
 }

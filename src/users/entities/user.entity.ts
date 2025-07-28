@@ -7,8 +7,8 @@ import { Driver } from 'src/driver/entities/driver.entity';
 
 export enum Role {
   ADMIN = 'admin',
-  DRIVER = 'driver',
   CUSTOMER = 'customer',
+  DRIVER = 'driver',
 }
 
 @Entity()
@@ -36,6 +36,27 @@ export class User {
 
   @Column({ type: 'enum', enum: Role, default: Role.CUSTOMER })
   role: Role;
+
+  // New field to track current active role for users who can be both
+  @Column({ 
+    type: 'enum', 
+    enum: Role, 
+    nullable: true,
+    default: null 
+  })
+  activeRole?: Role;
+
+  // Track available roles this user can switch between
+  @Column({ 
+    type: 'simple-array',
+    nullable: true,
+    default: null
+  })
+  availableRoles?: Role[];
+
+  // Track if user is eligible to be a driver
+  @Column({ default: false })
+  isDriverEligible: boolean;
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   created_at: Date;

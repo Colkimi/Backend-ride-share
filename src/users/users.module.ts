@@ -17,6 +17,9 @@ import { Location } from 'src/location/entities/location.entity';
 import { PaymentMethod } from 'src/payment-method/entities/payment-method.entity';
 import { Review } from 'src/review/entities/review.entity';
 import { Booking } from 'src/bookings/entities/booking.entity';
+import { Driver } from 'src/driver/entities/driver.entity';
+import { RoleSwitchingController } from './role-switching.controller';
+import { RoleSwitchingService } from './role-switching.service';
 
 @Module({
   imports: [
@@ -36,9 +39,11 @@ import { Booking } from 'src/bookings/entities/booking.entity';
     forwardRef(() => PaymentMethodModule),
     forwardRef(() => ReviewModule),
     forwardRef(() => BookingsModule),
-    TypeOrmModule.forFeature([User, Location, PaymentMethod, Review, Booking]),
+    TypeOrmModule.forFeature([User, Location, PaymentMethod, Review, Booking,Driver]),
   ],
-  controllers: [UsersController],
-  providers: [UsersService, RolesGuard],
+  controllers: [UsersController, RoleSwitchingController],
+  providers: [UsersService, RolesGuard, RoleSwitchingService],
+  exports: [UsersService, RoleSwitchingService],
+
 })
 export class UsersModule {}

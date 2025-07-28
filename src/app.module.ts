@@ -25,6 +25,7 @@ import { SmsModule } from './notifications/sms/sms.module';
 import { SeedingModule } from './seeding/seeding.module';
 import { PaymentModule } from './payment/payment.module';
 import { AnalyticsModule } from './analytics/analytics.module';
+import { RideshareModule } from './rideshare/rideshare.module';
 
 @Module({
   imports: [
@@ -73,6 +74,7 @@ import { AnalyticsModule } from './analytics/analytics.module';
     SeedingModule,
     PaymentModule,
     AnalyticsModule,
+    RideshareModule,
     ],
   controllers: [],
   providers: [

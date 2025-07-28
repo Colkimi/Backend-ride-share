@@ -44,9 +44,9 @@ export class EmailService {
         <ul>
           <li>booking ID: ${booking.id}</li>
           <li>Pickup time: ${booking.pickup_time}</li>
-          <li>Distance to destination: ${booking.distance}</li>
+          <li>Distance to destination: ${booking.distance} km</li>
           <li>Expected duration of the ride: ${booking.duration}</li>
-          <li>Fare for the: ${booking.fare}</li>
+          <li>Fare for the: $ ${booking.fare}</li>
         </ul>
         <p>You will be notified when the status of your booking changes.</p>
       </div>

@@ -81,7 +81,7 @@ services:
   nestjs-app:
     build:
       context: .
-      dockerfile: Dockerfile.prod
+      dockerfile: Dockerfile
       args:
         NODE_ENV: production
     image: ride-sharing-app:${APP_VERSION:-latest}

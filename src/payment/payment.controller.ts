@@ -17,7 +17,7 @@ export class PaymentController {
   ) {
     if (res) {
       // Redirect to frontend success page
-      return res.redirect(`${ 'http://localhost:3000'}/success?token=${token}&PayerID=${payerId}`);
+      return res.redirect(`https://rideshare.geniushackers.guru/success?token=${token}&PayerID=${payerId}`);
     }
     
     return {
@@ -38,7 +38,7 @@ export class PaymentController {
   ) {
     if (res) {
       // Redirect to frontend cancel page
-      return res.redirect(`${ 'http://localhost:3000'}/failed?token=${token}`);
+      return res.redirect(`https://rideshare.geniushackers.guru/failed?token=${token}`);
     }
     
     return {

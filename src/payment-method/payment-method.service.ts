@@ -40,8 +40,8 @@ export class PaymentMethodService {
         const order = await this.paypalService.createOrder(
           paymentData.amount.toString(),
           paymentData.currency || 'USD',
-          returnUrl || 'http://localhost:3000/success',
-          cancelUrl || 'http://localhost:3000/cancel'
+          returnUrl || 'https://rideshare.geniushackers.guru/success',
+          cancelUrl || 'https://rideshare.geniushackers.guru/cancel'
         );
 
         // Extract the approval URL from the PayPal order response

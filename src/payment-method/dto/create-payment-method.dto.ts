@@ -59,7 +59,7 @@ export class CreatePaymentMethodDto {
 
   @ApiProperty({
     description: 'Return URL for PayPal approval flow',
-    example: 'http://localhost:3000/success',
+    example: 'https://rideshare.geniushackers.guru/success',
     required: false,
   })
   @IsString()
@@ -68,7 +68,7 @@ export class CreatePaymentMethodDto {
 
   @ApiProperty({
     description: 'Cancel URL for PayPal approval flow',
-    example: 'http://localhost:3000/cancel',
+    example: 'https://rideshare.geniushackers.guru/cancel',
     required: false,
   })
   @IsString()

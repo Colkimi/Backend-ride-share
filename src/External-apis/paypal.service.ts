@@ -26,8 +26,8 @@ export class PaypalService {
       landing_page: 'BILLING',
       shipping_preference: 'NO_SHIPPING',
       user_action: 'PAY_NOW',
-      return_url: returnUrl || 'http://localhost:3000/success',
-      cancel_url: cancelUrl || 'http://localhost:3000/cancel',
+      return_url: returnUrl || 'https://rideshare.geniushackers.guru/success',
+      cancel_url: cancelUrl || 'https://rideshare.geniushackers.guru/cancel',
     };
 
     request.requestBody({

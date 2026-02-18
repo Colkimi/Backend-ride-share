@@ -53,7 +53,7 @@ async function bootstrap() {
     .addTag('seeding', 'use seeding endpoint')
     .addBearerAuth()
     .addServer(`http://localhost:${PORT}`)
-    .addServer('https://deployedapp.com')
+    .addServer('https://rideshare.geniushackers.guru')
     .setVersion('1.0')
     .setTermsOfService('https://rideshare.com/terms')
     .setContact(

@@ -1,6 +1,3 @@
-// Force IPv4 DNS resolution - must be first
-import './ipv4-dns';
-
 import { HttpAdapterHost, NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';

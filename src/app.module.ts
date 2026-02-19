@@ -1,3 +1,6 @@
+// Force IPv4 DNS resolution - MUST BE FIRST
+import './ipv4-dns';
+
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { UsersModule } from './users/users.module';
 import { BookingsModule } from './bookings/bookings.module';

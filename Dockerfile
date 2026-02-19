@@ -50,4 +50,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD node dist/health-check.js || exit 1
 
 # Start the application
-CMD ["node", "dist/main"]
+CMD ["node", "dist/main.js"]

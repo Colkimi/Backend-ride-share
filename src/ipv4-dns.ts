@@ -4,6 +4,16 @@
  */
 import * as dns from 'dns';
 
+// Configure DNS servers (Google DNS and Cloudflare)
+dns.setServers([
+  '8.8.8.8',      // Google DNS
+  '8.8.4.4',      // Google DNS
+  '1.1.1.1',      // Cloudflare DNS
+  '1.0.0.1',      // Cloudflare DNS
+]);
+
+console.log('DNS servers configured:', dns.getServers());
+
 const originalLookup = dns.lookup;
 
 // Override dns.lookup to force IPv4

@@ -14,8 +14,8 @@ RUN pnpm install --frozen-lockfile
 # Copy source code
 COPY . .
 
-# Build the application
-RUN pnpm run build
+# Build the application (with clean build)
+RUN rm -rf dist *.tsbuildinfo && pnpm run build
 
 # Verify build output
 RUN ls -la dist/ && test -f dist/main.js || (echo "Build failed: main.js not found" && exit 1)

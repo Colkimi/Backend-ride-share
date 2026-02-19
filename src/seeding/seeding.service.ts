@@ -17,12 +17,14 @@ import { CreateSeedingDto } from './dto/create-seeding.dto';
 import { UpdateSeedingDto } from './dto/update-seeding.dto';
 import { SeedUsersDto, SeedDriversDto, SeedVehiclesDto, SeedLocationsDto, SeedBookingsDto, SeedReviewsDto, ClearDataDto } from './dto/seed-specific.dto';
 import * as bcrypt from 'bcrypt';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class SeedingService implements OnModuleInit {
   private readonly logger = new Logger(SeedingService.name);
 
   constructor(
+    private configService: ConfigService,
     @InjectRepository(User) private userRepository: Repository<User>,
     @InjectRepository(Driver) private driverRepository: Repository<Driver>,
     @InjectRepository(Location) private locationRepository: Repository<Location>,
@@ -35,17 +37,40 @@ export class SeedingService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
+    // Check if auto-seeding is enabled (disabled in production by default)
+    const autoSeed = this.configService.get<string>('AUTO_SEED', 'false');
+    const isProduction = this.configService.get<string>('NODE_ENV') === 'production';
+    
+    if (autoSeed !== 'true' && isProduction) {
+      this.logger.log('🚫 Auto-seeding disabled in production. Use /seeding/seed-all endpoint to seed manually.');
+      return;
+    }
+
+    if (autoSeed !== 'true') {
+      this.logger.log('ℹ️ Auto-seeding disabled. Set AUTO_SEED=true to enable automatic seeding on startup.');
+      return;
+    }
+
     try {
       const userCount = await this.userRepository.count();
       if (userCount === 0) {
         this.logger.log('🌱 Database is empty, starting seeding process...');
-        await this.seedAll();
-        this.logger.log('✅ Database seeded successfully!');
+        // Run seeding in background to not block server startup
+        this.seedInBackground();
       } else {
         this.logger.log(`📊 Database already contains ${userCount} users, skipping seeding`);
       }
     } catch (error) {
-      this.logger.error('❌ Error during seeding:', error);
+      this.logger.error('❌ Error checking if seeding is needed:', error);
+    }
+  }
+
+  private async seedInBackground() {
+    try {
+      await this.seedAll();
+      this.logger.log('✅ Database seeded successfully!');
+    } catch (error) {
+      this.logger.error('❌ Error during background seeding:', error);
     }
   }
 

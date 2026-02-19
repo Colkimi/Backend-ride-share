@@ -28,7 +28,10 @@ async function bootstrap() {
   app.enableCors();
 
   const configService = app.get(ConfigService);
-  const PORT = configService.getOrThrow<number>('PORT');
+  const PORT = configService.get<number>('PORT', 8000);
+  
+  console.log(`🚀 Starting server on port ${PORT}...`);
+  
   const config = new DocumentBuilder()
     .setTitle('Ride Sharing system')
     .setDescription(
@@ -87,8 +90,11 @@ async function bootstrap() {
     customfavIcon:
       'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTEthKcF9mPcr0VjEH0ILoQS_JywzjNrlrEIA&s',
   });
-  await app.listen(PORT, () => {
-    console.log(`Server is running on Port ${PORT}`);
+  
+  // Bind to 0.0.0.0 to accept connections from outside the container
+  await app.listen(PORT, '0.0.0.0', () => {
+    console.log(`✅ Server is running on http://0.0.0.0:${PORT}`);
+    console.log(`📚 API Documentation available at http://0.0.0.0:${PORT}/docs`);
   });
 }
 bootstrap();

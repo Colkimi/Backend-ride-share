@@ -9,14 +9,19 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => {
         const isProduction = configService.get('NODE_ENV') === 'production';
+        const dbHost = configService.getOrThrow<string>('DB_HOST');
+        const dbPort = configService.getOrThrow<number>('DB_PORT');
+        const dbName = configService.getOrThrow<string>('DB_NAME');
+        
+        console.log(`Connecting to database: ${dbHost}:${dbPort}/${dbName} (SSL: ${isProduction})`);
         
         return {
           type: 'postgres',
-          host: configService.getOrThrow<string>('DB_HOST'),
-          port: configService.getOrThrow<number>('DB_PORT'),
+          host: dbHost,
+          port: dbPort,
           username: configService.getOrThrow<string>('DB_USERNAME'),
           password: configService.getOrThrow<string>('DB_PASSWORD'),
-          database: configService.getOrThrow<string>('DB_NAME'),
+          database: dbName,
           entities: [__dirname + '/../**/*.entity{.ts,.js}'],
           synchronize: configService.get<boolean>('DB_SYNC', !isProduction),
           logging: configService.get<boolean>('DB_LOGGING', false),
@@ -25,7 +30,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
             connectionTimeoutMillis: 10000,
             query_timeout: 10000,
           },
-          // Enable SSL for production by default
+          // Supabase requires SSL in production
           ssl: configService.get<boolean>('DB_SSL', isProduction) ? {
             rejectUnauthorized: false,
           } : false,

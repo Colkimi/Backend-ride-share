@@ -31,22 +31,51 @@ JWT_REFRESH_TOKEN_SECRET=your_refresh_token_secret
 
 If you encounter `ENOTFOUND` errors for the database hostname:
 
+### Primary Solution: Use Supabase Connection Pooler
+The connection pooler bypasses many DNS issues:
+
+1. **Get your pooler URL from Supabase**:
+   - Go to your Supabase project → Settings → Database
+   - Look for "Connection Pooling" section
+   - Copy the connection string (host will be like `aws-0-us-east-1.pooler.supabase.com`)
+
+2. **Update your environment variables**:
+   ```bash
+   DB_HOST=aws-0-us-east-1.pooler.supabase.com  # Your pooler host
+   DB_PORT=6543                                    # Pooler port (not 5432)
+   DB_NAME=postgres
+   DB_USERNAME=postgres.your-project-ref          # Note: May include project ref
+   DB_PASSWORD=your_password
+   DB_SSL=true
+   NODE_ENV=production
+   ```
+
+### Alternative Solutions
+
 1. **Check DNS Configuration**: Ensure your deployment platform has DNS configured
-2. **Use IPv4 Mode**: The app forces IPv4 DNS resolution to avoid IPv6 issues
-3. **Supabase Connection Pooling**: Consider using Supabase connection pooling endpoint:
-   - Instead of: `db.xxx.supabase.co`
-   - Use: `aws-0-us-east-1.pooler.supabase.com` (check your Supabase dashboard for the correct pooler URL)
-   - Set port to `6543` for pooler mode
+   - The app attempts to use Google DNS (8.8.8.8) and Cloudflare DNS (1.1.1.1)
+   - Check logs for "Resolved X to Y.Y.Y.Y" messages
+
+2. **Use Direct IP (Not Recommended)**: If you can resolve the IP locally:
+   ```bash
+   # On your local machine:
+   nslookup db.wlxtmrdpggfbbwussiqj.supabase.co
+   
+   # Then set DB_HOST to the resolved IP:
+   DB_HOST=54.xxx.xxx.xxx
+   ```
+   
+3. **Platform-Specific Issues**:
+   - **Render.com**: Usually works out of the box
+   - **Railway.app**: Check network settings in project settings
+   - **Fly.io**: May require IPv6 configuration or use Supabase pooler
+   - **DigitalOcean/AWS**: Check security groups allow outbound connections
+   - **Docker-based platforms**: Ensure container has network access
 
 4. **Test DNS from Container**: Run this in your deployment platform's shell:
    ```bash
    nslookup db.wlxtmrdpggfbbwussiqj.supabase.co
    ```
-
-5. **Platform-Specific Configuration**:
-   - **Render/Railway**: Should work out of the box
-   - **Fly.io**: May need IPv6 configuration
-   - **DigitalOcean/AWS**: Check security group/firewall rules
 
 ## Troubleshooting
 

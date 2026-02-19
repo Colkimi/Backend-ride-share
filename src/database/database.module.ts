@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { Resolver } from 'dns/promises';
 
 @Module({
   imports: [
@@ -9,9 +10,30 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => {
         const isProduction = configService.get('NODE_ENV') === 'production';
-        const dbHost = configService.getOrThrow<string>('DB_HOST');
+        let dbHost = configService.getOrThrow<string>('DB_HOST');
         const dbPort = configService.getOrThrow<number>('DB_PORT');
         const dbName = configService.getOrThrow<string>('DB_NAME');
+        
+        // Try to resolve hostname to IPv4 using custom DNS servers
+        if (!/^\d+\.\d+\.\d+\.\d+$/.test(dbHost)) {
+          try {
+            const resolver = new Resolver();
+            resolver.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1']);
+            
+            console.log(`Attempting to resolve ${dbHost} using custom DNS servers...`);
+            const addresses = await resolver.resolve4(dbHost);
+            
+            if (addresses && addresses.length > 0) {
+              const resolvedIp = addresses[0];
+              console.log(`✓ Resolved ${dbHost} to ${resolvedIp}`);
+              dbHost = resolvedIp;
+            }
+          } catch (error) {
+            console.warn(`⚠ Failed to resolve ${dbHost}, using hostname as-is:`, error.message);
+            console.log('This may indicate network restrictions in your deployment environment.');
+            console.log('Consider using Supabase connection pooler or check platform DNS settings.');
+          }
+        }
         
         console.log(`Connecting to database: ${dbHost}:${dbPort}/${dbName} (SSL: ${isProduction})`);
         

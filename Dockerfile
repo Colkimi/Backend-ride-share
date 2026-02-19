@@ -28,8 +28,8 @@ RUN npm install -g pnpm
 # Copy package files
 COPY package.json pnpm-lock.yaml ./
 
-# Install only production dependencies
-RUN pnpm install --prod --frozen-lockfile
+# Install all dependencies (some NestJS modules in devDependencies are needed at runtime)
+RUN pnpm install --frozen-lockfile
 
 # Copy built application from builder stage
 COPY --from=builder /app/dist ./dist

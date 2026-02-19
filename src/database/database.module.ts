@@ -1,10 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import * as dns from 'dns';
-import { promisify } from 'util';
-
-const resolve4 = promisify(dns.resolve4);
 
 @Module({
   imports: [
@@ -13,25 +9,10 @@ const resolve4 = promisify(dns.resolve4);
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => {
         const isProduction = configService.get('NODE_ENV') === 'production';
-        let dbHost = configService.getOrThrow<string>('DB_HOST');
         
-        // Force IPv4 resolution to avoid ENETUNREACH with IPv6
-        try {
-          // If hostname is not already an IP, resolve to IPv4
-          if (!/^\d+\.\d+\.\d+\.\d+$/.test(dbHost)) {
-            const addresses = await resolve4(dbHost);
-            if (addresses && addresses.length > 0) {
-              dbHost = addresses[0];
-              console.log(`Resolved ${configService.get('DB_HOST')} to IPv4: ${dbHost}`);
-            }
-          }
-        } catch (error) {
-          console.warn(`Failed to resolve ${dbHost} to IPv4, using as-is:`, error.message);
-        }
-
         return {
           type: 'postgres',
-          host: dbHost,
+          host: configService.getOrThrow<string>('DB_HOST'),
           port: configService.getOrThrow<number>('DB_PORT'),
           username: configService.getOrThrow<string>('DB_USERNAME'),
           password: configService.getOrThrow<string>('DB_PASSWORD'),

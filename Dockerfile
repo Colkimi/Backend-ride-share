@@ -48,6 +48,9 @@ USER nestjs
 # Expose port
 EXPOSE 8000
 
+# Set Node.js to prefer IPv4
+ENV NODE_OPTIONS="--dns-result-order=ipv4first"
+
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD node dist/health-check.js || exit 1

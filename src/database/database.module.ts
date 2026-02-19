@@ -18,12 +18,14 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
         synchronize: configService.getOrThrow<boolean>('DB_SYNC', true),
         logging: configService.getOrThrow<boolean>('DB_LOGGING', false),
         migrations: [__dirname + '/../migrations/**/*{.ts,.js}'],
-        // ssl: true,
-        // extra: {
-        //   ssl: {
-        //     rejectUnauthorized: false,
-        //   },
-        // },
+        extra: {
+          // Force IPv4 to avoid ENETUNREACH errors with IPv6
+          connectionTimeoutMillis: 5000,
+        },
+        // SSL configuration
+        ssl: configService.get<boolean>('DB_SSL', false) ? {
+          rejectUnauthorized: false,
+        } : false,
       }),
       inject: [ConfigService],
     }),

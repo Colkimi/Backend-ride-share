@@ -13,6 +13,8 @@ coverage
 *.md
 !package*.json
 !pnpm-lock.yaml
+!nest-cli.json
+!tsconfig*.json
 applogs
 image
 test

@@ -17,6 +17,9 @@ COPY . .
 # Build the application
 RUN pnpm run build
 
+# Verify build output
+RUN ls -la dist/ && test -f dist/main.js || (echo "Build failed: main.js not found" && exit 1)
+
 # Production stage
 FROM node:18-alpine AS production
 

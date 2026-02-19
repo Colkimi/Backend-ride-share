@@ -12,7 +12,7 @@ coverage
 .DS_Store
 *.md
 !package*.json
-!pnpm*.yaml
+!pnpm-lock.yaml
 applogs
 image
 test

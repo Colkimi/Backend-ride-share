@@ -1,4 +1,4 @@
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
@@ -14,9 +14,6 @@ RUN pnpm install --frozen-lockfile
 # Copy source code
 COPY . .
 
-# Debug: Check for stray TypeScript files
-RUN ls -la *.ts 2>/dev/null || echo "No .ts files in root"
-
 # Build the application (with clean build)
 RUN rm -rf dist *.tsbuildinfo && pnpm run build
 
@@ -24,7 +21,7 @@ RUN rm -rf dist *.tsbuildinfo && pnpm run build
 RUN ls -la dist/ && test -f dist/main.js || (echo "Build failed: main.js not found" && exit 1)
 
 # Production stage
-FROM node:18-alpine AS production
+FROM node:20-alpine AS production
 
 WORKDIR /app
 
